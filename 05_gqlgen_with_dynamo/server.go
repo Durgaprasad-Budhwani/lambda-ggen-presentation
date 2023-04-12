@@ -1,18 +1,37 @@
 package main
 
 import (
-	"github.com/lambda-gqgen-presentation/aws"
-	"github.com/lambda-gqgen-presentation/service"
-	"log"
-	"net/http"
 	"os"
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
+	"github.com/gin-gonic/gin"
+	"github.com/lambda-gqgen-presentation/aws"
 	"github.com/lambda-gqgen-presentation/graph"
+	"github.com/lambda-gqgen-presentation/service"
 )
 
 const defaultPort = "8080"
+
+// Defining the Graphql handler
+func graphqlHandler() gin.HandlerFunc {
+	db := aws.NewDynamoClient()
+	todoService := service.NewTodoService(db)
+	h := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: graph.NewResolver(todoService)}))
+
+	return func(c *gin.Context) {
+		h.ServeHTTP(c.Writer, c.Request)
+	}
+}
+
+// Defining the Playground handler
+func playgroundHandler() gin.HandlerFunc {
+	h := playground.Handler("GraphQL", "/query")
+
+	return func(c *gin.Context) {
+		h.ServeHTTP(c.Writer, c.Request)
+	}
+}
 
 func main() {
 	port := os.Getenv("PORT")
@@ -20,13 +39,9 @@ func main() {
 		port = defaultPort
 	}
 
-	db := aws.NewDynamoClient()
-	todoService := service.NewTodoService(db)
-	srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: graph.NewResolver(todoService)}))
-
-	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
-	http.Handle("/query", srv)
-
-	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
-	log.Fatal(http.ListenAndServe(":"+port, nil))
+	// Setting up Gin
+	r := gin.Default()
+	r.POST("/query", graphqlHandler())
+	r.GET("/", playgroundHandler())
+	r.Run(":" + port)
 }
