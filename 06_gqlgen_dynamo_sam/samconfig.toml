@@ -1,0 +1,12 @@
+version = 0.1
+[default]
+[default.deploy]
+[default.deploy.parameters]
+stack_name = "gqlgen-serverless-dynamodb"
+s3_bucket = "aws-sam-cli-managed-default-samclisourcebucket-1vd2q86uzjrc0"
+s3_prefix = "gqlgen-serverless-dynamodb"
+region = "us-east-1"
+capabilities = "CAPABILITY_NAMED_IAM"
+image_repositories = []
+confirm_changeset = true
+disable_rollback = true
